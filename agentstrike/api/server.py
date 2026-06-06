@@ -7,13 +7,18 @@ also exposes a top-level ``app`` for ``uvicorn agentstrike.api.server:app``.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from fastapi import FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
+
+from agentstrike import __version__
 
 if TYPE_CHECKING:
     from agentstrike.config import Settings
 
 
-def create_app(settings: "Settings | None" = None) -> Any:
+def create_app(settings: "Settings | None" = None) -> FastAPI:
     """Build and return a configured FastAPI app.
 
     The factory:
@@ -29,14 +34,46 @@ def create_app(settings: "Settings | None" = None) -> Any:
     Returns:
         A ready-to-serve ``FastAPI`` instance.
     """
-    raise NotImplementedError
+    del settings
+
+    fastapi_app = FastAPI(
+        title="AgentStrike",
+        version=__version__,
+        description="Red team simulation platform for Claude-based AI agent deployments.",
+    )
+
+    fastapi_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @fastapi_app.get("/")
+    async def root() -> dict[str, str]:
+        return {
+            "name": "AgentStrike",
+            "version": __version__,
+            "status": "scaffold",
+            "docs": "/docs",
+        }
+
+    @fastapi_app.get("/health")
+    async def health() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @fastapi_app.get("/favicon.ico")
+    async def favicon() -> Response:
+        return Response(status_code=204)
+
+    return fastapi_app
 
 
-app: Any = None
-"""Module-level ASGI app populated at import time by :func:`create_app`.
+app: FastAPI = create_app()
+"""Module-level ASGI app for ``uvicorn agentstrike.api.server:app``.
 
-Implementation note:
-    The real module will replace this ``None`` with
-    ``app = create_app()`` once :func:`create_app` is implemented, so the
-    standard ``uvicorn agentstrike.api.server:app`` invocation works.
+Once :mod:`agentstrike.api.routes` and :mod:`agentstrike.api.sse` are
+implemented, :func:`create_app` should ``include_router`` them here so the
+``/api/*`` and SSE endpoints come online automatically.
 """
