@@ -1,0 +1,46 @@
+# --- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# --- Virtual envs -----------------------------------------------------------
+.venv/
+venv/
+env/
+
+# --- Secrets / local config -------------------------------------------------
+.env
+.env.local
+*.pem
+*.key
+
+# --- AgentStrike runtime artefacts -----------------------------------------
+runs/
+reports/*.pdf
+event_logs/
+memory_store/
+
+# --- Frontend ---------------------------------------------------------------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# --- IDE / OS ---------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
