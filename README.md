@@ -22,23 +22,23 @@ clock-ordered event log** that streams live to the React dashboard via SSE.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Output Layer                             │
+│                         Output Layer                            │
 │   FastAPI + SSE  •  React dashboard  •  CLI  •  PDF reports     │
 ├─────────────────────────────────────────────────────────────────┤
-│                         Event Stream                             │
+│                         Event Stream                            │
 │   Typed events  •  Append-only log  •  SSE broadcast            │
 ├─────────────────────────────────────────────────────────────────┤
-│                     Attack + Defense Layer                       │
+│                     Attack + Defense Layer                      │
 │   YAML scenario registry  •  5-stage validation pipeline        │
-│   Constitutional AI self-check (Blue)                            │
+│   Constitutional AI self-check (Blue)                           │
 ├─────────────────────────────────────────────────────────────────┤
-│                          Three Agents                            │
+│                          Three Agents                           │
 │        Red (Haiku)  •  Blue (Opus)  •  Judge (Sonnet)           │
 ├─────────────────────────────────────────────────────────────────┤
-│                         Orchestrator                             │
+│                         Orchestrator                            │
 │   HMAC-SHA256 session keys  •  Turn sequencer  •  Router        │
 ├─────────────────────────────────────────────────────────────────┤
-│                       Infrastructure                             │
+│                       Infrastructure                            │
 │   MCP mock tools  •  SHA-256 chained memory store               │
 │   Vector clocks  •  Quorum write validation                     │
 └─────────────────────────────────────────────────────────────────┘
