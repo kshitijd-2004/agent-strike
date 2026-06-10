@@ -11,6 +11,8 @@ silently rewriting committed turns.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 from dataclasses import dataclass
 
 
@@ -20,7 +22,7 @@ class QuorumSigner:
 
     Attributes:
         signer_id: Stable identifier (e.g. ``"blue"`` or ``"judge"``).
-        key:       32-byte HMAC key. Distinct per signer per session.
+        key:       HMAC key. Distinct per signer per session.
     """
 
     signer_id: str
@@ -29,7 +31,8 @@ class QuorumSigner:
 
 def sign(payload: bytes, signer: QuorumSigner) -> str:
     """Return ``"<signer_id>:<hex_hmac>"`` for ``payload``."""
-    raise NotImplementedError
+    digest = hmac.new(signer.key, payload, hashlib.sha256).hexdigest()
+    return f"{signer.signer_id}:{digest}"
 
 
 def verify_quorum(
@@ -47,6 +50,23 @@ def verify_quorum(
         quorum_size: Minimum number of valid distinct signatures required.
 
     Returns:
-        ``True`` iff the quorum is satisfied. Constant-time per signature.
+        ``True`` iff at least ``quorum_size`` distinct, recognised signers each
+        supplied a valid signature. Every candidate is checked so the negative
+        path does not short-circuit on the first failure.
     """
-    raise NotImplementedError
+    if quorum_size <= 0:
+        return True
+
+    roster = {s.signer_id: s for s in signers}
+    valid_signers: set[str] = set()
+
+    for entry in signatures:
+        signer_id, _, claimed = entry.partition(":")
+        signer = roster.get(signer_id)
+        if signer is None or not claimed:
+            continue
+        expected = hmac.new(signer.key, payload, hashlib.sha256).hexdigest()
+        if hmac.compare_digest(expected, claimed):
+            valid_signers.add(signer_id)
+
+    return len(valid_signers) >= quorum_size
