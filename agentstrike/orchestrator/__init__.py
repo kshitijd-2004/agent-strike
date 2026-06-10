@@ -10,3 +10,26 @@ Glues the three Claude agents together inside a single simulation:
 The orchestrator is the only component that holds the session secret; agents
 and tools see only signed envelopes.
 """
+
+from agentstrike.orchestrator.router import AgentProtocol, MemoryProtocol, Router
+from agentstrike.orchestrator.sequencer import Role, TurnSequencer
+from agentstrike.orchestrator.session import (
+    SessionKey,
+    SignatureError,
+    new_session_key,
+    sign,
+    verify,
+)
+
+__all__ = [
+    "AgentProtocol",
+    "MemoryProtocol",
+    "Role",
+    "Router",
+    "SessionKey",
+    "SignatureError",
+    "TurnSequencer",
+    "new_session_key",
+    "sign",
+    "verify",
+]

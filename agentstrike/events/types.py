@@ -4,15 +4,17 @@ Every event in AgentStrike is a Pydantic model that inherits from
 :class:`Event`. The discriminator field is :attr:`Event.type` (an
 :class:`EventType` enum) so the FastAPI / SSE layer can serialise and route
 events generically.
-
-The PT (Pydantic Tagged Union) discriminator pattern lets the dashboard
-deserialise heterogeneous event lists with full type safety.
 """
 
 from __future__ import annotations
 
+import json
+import time
+import uuid
 from enum import Enum
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EventType(str, Enum):
@@ -44,46 +46,50 @@ class EventType(str, Enum):
     ERROR = "error"
 
 
-class Event:
-    """Base class for every typed event.
+class Event(BaseModel):
+    """A single observable event in a simulation run.
 
-    Attributes (planned, all Pydantic fields):
-        id:          ULID for the event (sortable, globally unique).
-        type:        :class:`EventType` discriminator.
-        session_id:  Owning simulation session id.
-        round_idx:   Round number, or ``None`` for session-level events.
-        turn_idx:    Turn number, or ``None`` for session-level events.
-        agent_role:  ``"red" | "blue" | "judge"`` or ``None``.
-        timestamp:   Unix epoch seconds (float).
-        payload:     Event-specific data (subclasses narrow the type).
+    Carries the discriminator :attr:`type`, optional positional metadata
+    (``round_idx`` / ``turn_idx`` / ``agent_role``) and a free-form
+    :attr:`payload`. The dashboard, PDF reporter and SSE broadcaster all
+    consume this shape.
     """
 
-    def __init__(self, **fields: Any) -> None:
-        """Construct an event with the given fields. Real impl subclasses BaseModel."""
-        raise NotImplementedError
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(default_factory=lambda: uuid.uuid4().hex)
+    type: EventType
+    session_id: str
+    round_idx: int | None = None
+    turn_idx: int | None = None
+    agent_role: str | None = None
+    timestamp: float = Field(default_factory=time.time)
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
-class SignedMessage:
+class SignedMessage(BaseModel):
     """Envelope passed between agents through the orchestrator.
 
-    Attributes (planned):
-        sender:    Originating role.
-        recipient: Target role.
-        round_idx: Round of this message.
-        turn_idx:  Turn within the round.
-        body:      Serialised payload (text + tool calls + tool results).
-        signature: Hex HMAC-SHA256 over canonical bytes (see
-            :mod:`agentstrike.orchestrator.session`).
+    The :attr:`signature` is an HMAC-SHA256 hex digest over
+    :meth:`canonical_bytes` (the message minus the signature). An empty
+    string is reserved for unsigned messages, which the router refuses to
+    accept on the inbound path.
     """
 
-    def __init__(self, **fields: Any) -> None:
-        """Construct a signed message envelope."""
-        raise NotImplementedError
+    model_config = ConfigDict(extra="forbid")
+
+    sender: str
+    recipient: str
+    round_idx: int
+    turn_idx: int
+    body: dict[str, Any] = Field(default_factory=dict)
+    signature: str = ""
 
     def canonical_bytes(self) -> bytes:
-        """Return the bytes that should be signed / verified.
+        """Return the canonical JSON bytes that should be signed/verified.
 
-        Excludes the ``signature`` field and uses canonical JSON ordering so
-        signing is deterministic.
+        ``signature`` is excluded; keys are sorted and whitespace is stripped
+        so the digest is independent of insertion order.
         """
-        raise NotImplementedError
+        data = self.model_dump(exclude={"signature"}, mode="json")
+        return json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
